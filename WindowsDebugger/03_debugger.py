@@ -204,7 +204,7 @@ class debugger:
         #
         self.pid = pid
         self.h_process = self.open_process(self.pid)
-        if not self.hProcess:
+        if not self.h_process:
             #
             # TODO: Properly handle failure.
             #
@@ -213,7 +213,7 @@ class debugger:
                   f'0x{self.__error:08X}')
         else:
             print('[*] Attached process sucessfully opened')
-            print(f'[*] Process handle 0x{self.hProcess:08X}')
+            print(f'[*] Process handle 0x{self.h_process:08X}')
         
         #
         # We attempt to attach to the process
@@ -271,4 +271,5 @@ class debugger:
         
 if __name__ == "__main__":
     dbg = debugger()
-    dbg.load(r'C:\Windows\System32\notepad.exe')
+    #dbg.load(r'C:\Windows\System32\notepad.exe')
+    dbg.attach(20928)
