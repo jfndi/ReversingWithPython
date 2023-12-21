@@ -10,6 +10,7 @@ import ctypes as ct
 import ctypes.wintypes as wt
 
 INFINITE = wt.DWORD(-1)
+ULONGLONG = ct.c_ulonglong
 
 #
 # dwCreationFlags
@@ -201,8 +202,8 @@ class EXCEPTION_RECORD64(ct.Structure):
     _fields_ = [
         ("ExceptionCode",           wt.DWORD),
         ("ExceptionFlags",          wt.DWORD),
-        ("ExceptionRecord",         wt.DWORD64),
-        ("ExceptionAddress",        wt.DWORD64),
+        ("ExceptionRecord",         ULONGLONG),
+        ("ExceptionAddress",        ULONGLONG),
         ("NumberOfParameters",      wt.DWORD),
         ("ExceptionInformation",    wt.DWORD * EXCEPTION_MAXIMUM_PARAMETERS),
     ]
