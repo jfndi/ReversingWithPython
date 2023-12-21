@@ -9,7 +9,7 @@ Author: kyria (Jean-François Ndi)
 import ctypes as ct
 import ctypes.wintypes as wt
 
-INFINITE = ct.DWORD(-1)
+INFINITE = wt.DWORD(-1)
 
 #
 # dwCreationFlags
@@ -180,7 +180,7 @@ class PROCESS_INFORMATION(ct.Structure):
         ("dwThreadId",      wt.DWORD),
     ]
     
-LPTHREAD_START_ROUTINE = ct.CFUNCTYPE(ct.DWORD, ct.LPVOID)
+LPTHREAD_START_ROUTINE = ct.CFUNCTYPE(wt.DWORD, wt.LPVOID)
 
 #
 # EXCEPTION_RECORD structures.
@@ -213,72 +213,72 @@ class EXCEPTION_RECORD64(ct.Structure):
 class EXCEPTION_DEBUG_INFO32(ct.Structure):
     _fields_ = [
         ("ExcepionRecord",      EXCEPTION_RECORD32),
-        ("FirstChance",         ct.DWORD),
+        ("FirstChance",         wt.DWORD),
     ]
 
 class EXCEPTION_DEBUG_INFO64(ct.Structure):
     _fields_ = [
         ("ExcepionRecord",      EXCEPTION_RECORD64),
-        ("FirstChance",         ct.DWORD),
+        ("FirstChance",         wt.DWORD),
     ]
 
 class CREATE_THREAD_DEBUG_INFO(ct.Structure):
     _fields_ = [
-        ("hThread",             ct.HANDLE),
-        ("lpThreadLocalBase",   ct.c_void_p),
+        ("hThread",             wt.HANDLE),
+        ("lpThreadLocalBase",   wt.LPVOID),
         ("lpStartAddress",      LPTHREAD_START_ROUTINE),
     ]
 
 class CREATE_PROCESS_DEBUG_INFO(ct.Structure):
     _fields_ = [
-        ("hFile",                   ct.HANDLE),
-        ("hProcess",                ct.HANDLE),
-        ("hThread",                 ct.HANDLE),
-        ("lpBaseOfImage",           ct.LPVOID),
-        ("dwDebugInfoFileOffset",   ct.DWORD),
-        ("nDebugInfoSize",          ct.DWORD),
-        ("lpThreadLocalBase",       ct.LPVOID),
+        ("hFile",                   wt.HANDLE),
+        ("hProcess",                wt.HANDLE),
+        ("hThread",                 wt.HANDLE),
+        ("lpBaseOfImage",           wt.LPVOID),
+        ("dwDebugInfoFileOffset",   wt.DWORD),
+        ("nDebugInfoSize",          wt.DWORD),
+        ("lpThreadLocalBase",       wt.LPVOID),
         ("lpStartAddress",          LPTHREAD_START_ROUTINE),
-        ("lpImageName",             ct.LPVOID),
-        ("fUnicode",                ct.WORD),
+        ("lpImageName",             wt.LPVOID),
+        ("fUnicode",                wt.WORD),
     ]
 
 class EXIT_THREAD_DEBUG_INFO(ct.Structure):
     _fields_ = [
-        ("dwExitCode",  ct.DWORD),
+        ("dwExitCode",  wt.DWORD),
     ]
 
 class EXIT_PROCESS_DEBUG_INFO(ct.Structure):
     _fields_ = [
-        ("dwExitCode",  ct.DWORD),
+        ("dwExitCode",  wt.DWORD),
     ]
 
 class LOAD_DLL_DEBUG_INFO(ct.Structure):
     _fields_ = [
-        ("hFile",                   ct.HANDLE),
-        ("lpBaseOfDll",             ct.LPVOID),
-        ("dwDebugInfoFileOffset",   ct.DWORD),
-        ("nDebugInfoSize",          ct.DWORD),
-        ("lpImageName",             ct.LPVOID),
-        ("fUnicode",                ct.WORD),
+        ("hFile",                   wt.HANDLE),
+        ("lpBaseOfDll",             wt.LPVOID),
+        ("dwDebugInfoFileOffset",   wt.DWORD),
+        ("nDebugInfoSize",          wt.DWORD),
+        ("lpImageName",             wt.LPVOID),
+        ("fUnicode",                wt.WORD),
     ]
 
 class UNLOAD_DLL_DEBUG_INFO(ct.Structure):
     _fields_ = [
-        ("lpBaseDll",   ct.LPVOID),
+        ("lpBaseDll",   wt.LPVOID),
     ]
 
 class OUTPUT_DEBUG_STRING_INFO(ct.Structure):
     _fields_ = [
-        ("lpDebugStringData",   ct.LPSTR),
-        ("fUnicode",            ct.WORD),
-        ("nDebugStringLength",  ct.WORD),
+        ("lpDebugStringData",   wt.LPSTR),
+        ("fUnicode",            wt.WORD),
+        ("nDebugStringLength",  wt.WORD),
     ]
 
 class RIP_INFO(ct.Structure):
     _fields_ = [
-        ("dwError", ct.DWORD),
-        ("dwType",  ct.DWORD),
+        ("dwError", wt.DWORD),
+        ("dwType",  wt.DWORD),
     ]
 
 class u32(ct.Union):
@@ -309,16 +309,16 @@ class u64(ct.Union):
 
 class DEBUG_EVENT32(ct.Structure):
     _fields_ = [
-        ("dwDebugEventCode",    ct.DWORD),
-        ("dwProcessId",         ct.DWORD),
-        ("dwThreadId",          ct.DWORD),
+        ("dwDebugEventCode",    wt.DWORD),
+        ("dwProcessId",         wt.DWORD),
+        ("dwThreadId",          wt.DWORD),
         ("u",                   u32),
     ]
 
 class DEBUG_EVENT64(ct.Structure):
     _fields_ = [
-        ("dwDebugEventCode",    ct.DWORD),
-        ("dwProcessId",         ct.DWORD),
-        ("dwThreadId",          ct.DWORD),
+        ("dwDebugEventCode",    wt.DWORD),
+        ("dwProcessId",         wt.DWORD),
+        ("dwThreadId",          wt.DWORD),
         ("u",                   u64),
     ]
