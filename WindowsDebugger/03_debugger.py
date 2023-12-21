@@ -10,7 +10,6 @@ import sys
 import ctypes as ct
 import importlib as il
 
-
 dd = il.import_module('03_debugger_defines')
 
 #
@@ -21,12 +20,18 @@ CreateProcess = kernel32.CreateProcessW
 GetLastError = kernel32.GetLastError
 OpenProcess = kernel32.OpenProcess
 DebugActiveProcess = kernel32.DebugActiveProcess
+WaitForDebugEvent = kernel32.WaitForDebugEvent
+ContinueDebugEvent = kernel32.ContinueDebugEvent
+DebugActiveProcessStop = kernel32.DebugActiveProcessStop
 
 #
 # Debugger defines aliases.
 #
 STARTUPINFO = dd.STARTUPINFOW
 PROCESS_INFORMATION = dd.PROCESS_INFORMATION
+DEBUG_EVENT = dd.DEBUG_EVENT64
+DBG_CONTINUE = dd.DBG_CONTINUE
+INFINITE = dd.INFINITE
 
 class debugger:
     def __init__(self):
@@ -176,6 +181,29 @@ class debugger:
         def get_debug_event(self):
             debug_event = DEBUG_EVENT()
             continue_status = DBG_CONTINUE
+            
+            if WaitForDebugEvent(ct.byref(debug_event), INFINITE):
+                #
+                # No event handlers for the time being.
+                # Let's resume the process for now.
+                #
+                input('Press any key to continue: ')
+                self.debugger_active = False
+                ContinueDebugEvent(debug_event.dwProcessId,
+                                   debug_event.dwThreadId,
+                                   continue_status)
+        
+        
+        def detach(self):
+            if DebugActiveProcessStop(self.pid):
+                print('[*] Finished debugging. Exiting...')
+                return True
+            else:
+                #
+                # TODO: Handle failure properly.
+                #
+                print('There was an error.')
+                return False
         
 if __name__ == "__main__":
     dbg = debugger()
