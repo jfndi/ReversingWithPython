@@ -32,34 +32,91 @@ DEBUG_EVENT = dd.DEBUG_EVENT64
 DBG_CONTINUE = dd.DBG_CONTINUE
 INFINITE = dd.INFINITE
 DEBUG_PROCESS = dd.DEBUG_PROCESS
+DEBUG_ONLY_THIS_PROCESS = dd.DEBUG_ONLY_THIS_PROCESS
 CREATE_NEW_CONSOLE = dd.CREATE_NEW_CONSOLE
 CREATE_SUSPENDED = dd.CREATE_SUSPENDED
+PROCESS_ALL_ACCESS = dd.PROCESS_ALL_ACCESS
 
 class debugger:
     def __init__(self):
-        pass
+        self.__error = 0
+
+
+    @property
+    def error(self):
+        return self.__error
+
+    def open_process(self, pid):
+        '''
+        
+        Get a HANDLE to the debuggee.
+
+        Parameters
+        ----------
+        pid : DWORD
+            Debuggee process ID.
+
+        Returns
+        -------
+        h_process : HANDLE
+            Handle to the debuggee process.
+
+        '''
+        h_process = OpenProcess(PROCESS_ALL_ACCESS, False, pid)
+        return h_process
     
+    
+    def debug_process(self, pid):
+        '''
+        
+        Enter the debug event handling loop.
+
+        Parameters
+        ----------
+        pid : DWORD
+            Target process to be debugged.
+
+        Returns
+        -------
+        bool
+            False: Unable to the debug the target process.
+            True: The Event loop was exited gracefully.
+
+        '''
+        if DebugActiveProcess(pid):
+            self.debugger_active = True
+            self.run()
+        else:
+            #
+            # Proprely handle failure.
+            #
+            self.__error = GetLastError()
+            print(f'[*] Unable to attach to the process 0x{self.__error:08X}')
+            return False
+        return True
+
+
     def load(self, path_to_exe):
         """
         
         Loads and spawns the provided executable.
-
+    
         Parameters
         ----------
         path_to_exe : str
             Path to the executable to be loaded.
-
+    
         Returns
         -------
         None.
-
+    
         """
         #
         # dwCreation flag determines hw to create the process
         # set creation_flags to CREATE_NEW_CONSOLE if we want
         # to see the calculator GUI.
         #
-        creation_flags = DEBUG_PROCESS | CREATE_NEW_CONSOLE | CREATE_SUSPENDED
+        creation_flags = DEBUG_ONLY_THIS_PROCESS | CREATE_NEW_CONSOLE
         
         #
         # Instantiate the structures.
@@ -74,7 +131,7 @@ class debugger:
         # the debuggee.
         #
         startupinfo.dwFlags = dd.STARTF_USESHOWWINDOW
-        startupinfo.wShowWindow = 0x1
+        startupinfo.wShowWindow = 0x0
         
         #
         # We then initialize the cb variable in the STARTUP_INFO struct
@@ -86,156 +143,131 @@ class debugger:
                          None,
                          None,
                          None,
-                         None,
+                         False,
                          creation_flags,
                          None,
                          None,
                          ct.byref(startupinfo),
                          ct.byref(process_information)):
             print('[*] We have successfully launched the process!')
-            print(f'[*] PID {process_information.dwProcessId}')
+            self.pid = process_information.dwProcessId
+            print(f'[*] PID {self.pid}')
             
             #
             # Obtain a valid handle to the newly launched process
             # and store it for future access.
             # TODO: Properly handle failure.
             #
-            self.h_process = self.open_process(process_information.dwProcessId)
-            if self.debug_process(process_information.dwProcessId) == False:
+            self.h_process = self.open_process(self.pid)
+            if not self.h_process:
+                #
+                # TODO: Properly handle failure.
+                #
+                self.__error = GetLastError()
+                print(f'[*] Unable to get a process handle 0x{self.__error:08X}')
+                return
+            else:
+                print('[*] Process successfully opened.')
+                print(f'[*] Returned handle 0x{self.h_process:08X}')
+            
+            if not self.debug_process(self.pid):
                 #
                 # TODO: Properly handle failure.
                 #
                 print('[*] Unable to debug process.')
         
         else:
-            error = GetLastError()
+            self.__error = GetLastError()
             #
             # TODO: Properly handle failure.
             #
-            print(f'Error: {error:08X}')
-        
-        
-        def open_process(self, pid):
-            '''
+            print(f'Error: 0x{self.__error:08X}')
             
-            Get a HANDLE to the debuggee.
-
-            Parameters
-            ----------
-            pid : DWORD
-                Debuggee process ID.
-
-            Returns
-            -------
-            h_process : HANDLE
-                Handle to the debuggee process.
-
-            '''
-            h_process = OpenProcess(dd.PROCESS_ALL_ACCESS, False, pid)
-            return h_process
         
+    def attach(self, pid):
+        '''
         
-        def debug_process(self, pid):
-            '''
+        Attach to a running process based on its pid.
+
+        Parameters
+        ----------
+        pid : DWORD
+            Target process to be attached to.
+
+        Returns
+        -------
+        None.
+
+        '''
+        #
+        # TODO: Properly handle failure.
+        #
+        self.pid = pid
+        self.h_process = self.open_process(self.pid)
+        if not self.hProcess:
+            #
+            # TODO: Properly handle failure.
+            #
+            self.__error = GetLastError()
+            print('[*] Unable to open the attached process ' 
+                  f'0x{self.__error:08X}')
+        else:
+            print('[*] Attached process sucessfully opened')
+            print(f'[*] Process handle 0x{self.hProcess:08X}')
+        
+        #
+        # We attempt to attach to the process
+        # if this fails we exit the call.
+        #
+        self.debug_process(pid)
             
-            Enter the debug event handling loop.
+        
+            
+            
+    def run(self):
+        '''
+        
+        Enters the debug event handling loop.
 
-            Parameters
-            ----------
-            pid : DWORD
-                Target process to be debugged.
+        Returns
+        -------
+        None.
 
-            Returns
-            -------
-            bool
-                False: Unable to the debug the target process.
-                True: The Event loop was exited gracefully.
-
-            '''
-            if DebugActiveProcess(pid):
-                self.debugger_active = True
-                self.pid = pid
-                self.run()
-            else:
-                #
-                # Proprely handle failure.
-                #
-                print('[*] Unable to attach to the process')
-                return False
+        '''
+        #
+        # Now we have to poll the debuggee for
+        # debugging events.
+        #
+        while self.debugger_active == True:
+            self.get_debug_event()
+    
+    
+    def get_debug_event(self):
+        debug_event = DEBUG_EVENT()
+        continue_status = DBG_CONTINUE
+        
+        if WaitForDebugEvent(ct.byref(debug_event), INFINITE):
+            #
+            # No event handlers for the time being.
+            # Let's resume the process for now.
+            #
+            input('Press any key to continue: ')
+            self.debugger_active = False
+            ContinueDebugEvent(debug_event.dwProcessId,
+                               debug_event.dwThreadId,
+                               continue_status)
+    
+    
+    def detach(self):
+        if DebugActiveProcessStop(self.pid):
+            print('[*] Finished debugging. Exiting...')
             return True
-            
-        
-        def attach(self, pid):
-            '''
-            
-            Attach to a running process based on its pid.
-
-            Parameters
-            ----------
-            pid : DWORD
-                Target process to be attached to.
-
-            Returns
-            -------
-            None.
-
-            '''
+        else:
             #
-            # TODO: Properly handle failure.
+            # TODO: Handle failure properly.
             #
-            self.h_process = self.open_process(pid)
-            
-            #
-            # We attempt to attach to the process
-            # if this fails we exit the call.
-            #
-            return self.debug_process(pid)
-                
-                
-        def run(self):
-            '''
-            
-            Enters the debug event handling loop.
-
-            Returns
-            -------
-            None.
-
-            '''
-            #
-            # Now we have to poll the debuggee for
-            # debugging events.
-            #
-            while self.debugger_active == True:
-                self.get_debug_event()
-        
-        
-        def get_debug_event(self):
-            debug_event = DEBUG_EVENT()
-            continue_status = DBG_CONTINUE
-            
-            if WaitForDebugEvent(ct.byref(debug_event), INFINITE):
-                #
-                # No event handlers for the time being.
-                # Let's resume the process for now.
-                #
-                input('Press any key to continue: ')
-                self.debugger_active = False
-                ContinueDebugEvent(debug_event.dwProcessId,
-                                   debug_event.dwThreadId,
-                                   continue_status)
-        
-        
-        def detach(self):
-            if DebugActiveProcessStop(self.pid):
-                print('[*] Finished debugging. Exiting...')
-                return True
-            else:
-                #
-                # TODO: Handle failure properly.
-                #
-                print('There was an error.')
-                return False
+            print('There was an error.')
+            return False
         
 if __name__ == "__main__":
     dbg = debugger()
