@@ -137,7 +137,7 @@ class debugger:
         # We then initialize the cb variable in the STARTUP_INFO struct
         # which is just the size of the struct itself.
         #
-        process_information.cb = ct.sizeof(process_information)
+        startupinfo.cb = ct.sizeof(startupinfo)
         
         if CreateProcess(path_to_exe,
                          None,
@@ -271,5 +271,5 @@ class debugger:
         
 if __name__ == "__main__":
     dbg = debugger()
-    #dbg.load(r'C:\Windows\System32\notepad.exe')
-    dbg.attach(20928)
+    dbg.load(r'C:\Windows\System32\notepad.exe')
+    #dbg.attach(20928)
