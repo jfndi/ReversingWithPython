@@ -6,7 +6,6 @@ Creation on Wed Dec 20 11:49:19 2023
 Author: kyria (Jean-François Ndi)
  
 """
-import sys
 import ctypes as ct
 import importlib as il
 
@@ -32,6 +31,9 @@ PROCESS_INFORMATION = dd.PROCESS_INFORMATION
 DEBUG_EVENT = dd.DEBUG_EVENT64
 DBG_CONTINUE = dd.DBG_CONTINUE
 INFINITE = dd.INFINITE
+DEBUG_PROCESS = dd.DEBUG_PROCESS
+CREATE_NEW_CONSOLE = dd.CREATE_NEW_CONSOLE
+CREATE_SUSPENDED = dd.CREATE_SUSPENDED
 
 class debugger:
     def __init__(self):
@@ -57,7 +59,7 @@ class debugger:
         # set creation_flags to CREATE_NEW_CONSOLE if we want
         # to see the calculator GUI.
         #
-        creation_flags = dd.DEBUG_PROCESS | dd.CREATE_NEW_CONSOLE
+        creation_flags = DEBUG_PROCESS | CREATE_NEW_CONSOLE | CREATE_SUSPENDED
         
         #
         # Instantiate the structures.
@@ -99,6 +101,11 @@ class debugger:
             # TODO: Properly handle failure.
             #
             self.h_process = self.open_process(process_information.dwProcessId)
+            if self.debug_process(process_information.dwProcessId) == False:
+                #
+                # TODO: Properly handle failure.
+                #
+                print('[*] Unable to debug process.')
         
         else:
             error = GetLastError()
@@ -128,6 +135,36 @@ class debugger:
             return h_process
         
         
+        def debug_process(self, pid):
+            '''
+            
+            Enter the debug event handling loop.
+
+            Parameters
+            ----------
+            pid : DWORD
+                Target process to be debugged.
+
+            Returns
+            -------
+            bool
+                False: Unable to the debug the target process.
+                True: The Event loop was exited gracefully.
+
+            '''
+            if DebugActiveProcess(pid):
+                self.debugger_active = True
+                self.pid = pid
+                self.run()
+            else:
+                #
+                # Proprely handle failure.
+                #
+                print('[*] Unable to attach to the process')
+                return False
+            return True
+            
+        
         def attach(self, pid):
             '''
             
@@ -136,7 +173,7 @@ class debugger:
             Parameters
             ----------
             pid : DWORD
-                Target process to ba attached to.
+                Target process to be attached to.
 
             Returns
             -------
@@ -152,12 +189,7 @@ class debugger:
             # We attempt to attach to the process
             # if this fails we exit the call.
             #
-            if DebugActiveProcess(pid):
-                self.debugger_active = True
-                self.pid = pid
-                self.run()
-            else:
-                print('[*] Unable to attach to the process')
+            return self.debug_process(pid)
                 
                 
         def run(self):
