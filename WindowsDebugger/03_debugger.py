@@ -22,6 +22,11 @@ DebugActiveProcess = kernel32.DebugActiveProcess
 WaitForDebugEvent = kernel32.WaitForDebugEvent
 ContinueDebugEvent = kernel32.ContinueDebugEvent
 DebugActiveProcessStop = kernel32.DebugActiveProcessStop
+OpenThread = kernel32.OpenThread
+CreateToolHelp32Snapshot = kernel32.CreateToolHelp32Snapshot
+Thread32First = kernel32.Thread32First
+Thread32Next = kernel32.Thread32Next
+GetThreadContext = kernel32.GetThreadContext
 
 #
 # Debugger defines aliases.
@@ -264,7 +269,7 @@ class debugger:
         while self.debugger_active == True:
             self.get_debug_event()
         else:
-            DebugActiveProcessStop(self.pid)
+            self.detach()
     
     
     def get_debug_event(self):
