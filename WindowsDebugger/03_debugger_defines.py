@@ -393,6 +393,7 @@ class THREADENTRY32(ct.Structure):
     ]
     
 class M128A(ct.Structure):
+    _pack_ = 16
     _fields_ = [
         ("Low",     ULONGLONG),
         ("High",    LONGLONG),
@@ -421,41 +422,34 @@ class ANONYMSTRUCT(ct.Structure):
     ]
 
 class XMM_SAVE_AREA32(ct.Structure):
+    _pack_ = 16
     _fields_ = [
-        ("ControlWord",         wt.USHORT),
-        ("StatusWord",          wt.USHORT),
-        ("TagWord",             UCHAR),
-        ("Reserved1",           UCHAR),
-        ("ErrorOpCode",         wt.USHORT),
-        ("ErrorOffset",         wt.ULONG),
-        ("ErrorSelector",       wt.USHORT),
-        ("Reserved2",           wt.USHORT),
-        ("DataOffset",          wt.ULONG),
-        ("DataSelector",        wt.USHORT),
-        ("Reserved3",           wt.USHORT),
-        ("MxCsr",               wt.ULONG),
-        ("MxCsr_Mask",          wt.ULONG),
+        ("ControlWord",         wt.WORD),
+        ("StatusWord",          wt.WORD),
+        ("TagWord",             wt.BYTE),
+        ("Reserved1",           wt.BYTE),
+        ("ErrorOpCode",         wt.WORD),
+        ("ErrorOffset",         wt.DWORD),
+        ("ErrorSelector",       wt.WORD),
+        ("Reserved2",           wt.WORD),
+        ("DataOffset",          wt.DWORD),
+        ("DataSelector",        wt.WORD),
+        ("Reserved3",           wt.WORD),
+        ("MxCsr",               wt.DWORD),
+        ("MxCsr_Mask",          wt.DWORD),
         ("FloatRegister",       M128A * 8),
         ("XmmRegisters",        M128A * 16),
         ("Reserved4",           UCHAR * 96),
-    ]
-
-class NEON128(ct.Structure):
-    _fields_ = [
-        ("Low",     ULONGLONG),
-        ("High",    LONGLONG),
-    ]    
+    ]  
 
 class ANONYMUNION(ct.Union):
     _fields_ = [
         ("FltSave",         XMM_SAVE_AREA32),
-        ("Q",               NEON128 * 16),
-        ("D",               ULONGLONG * 32),
         ("DUMMYSTRUCTNAME", ANONYMSTRUCT),
-        ("S",               wt.DWORD * 32),
     ]
 
 class CONTEXT(ct.Structure):
+    _pack_ = 16
     _fields_ = [
         ("P1Home",                  DWORD64),
         ("P2Home",                  DWORD64),
