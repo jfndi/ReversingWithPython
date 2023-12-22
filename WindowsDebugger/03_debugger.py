@@ -66,7 +66,7 @@ class debugger:
         return h_process
     
     
-    def debug_process(self, pid):
+    def debug_loaded_process(self, pid):
         '''
         
         Enter the debug event handling loop.
@@ -83,17 +83,9 @@ class debugger:
             True: The Event loop was exited gracefully.
 
         '''
-        if DebugActiveProcess(pid):
-            self.debugger_active = True
-            self.run()
-        else:
-            #
-            # Proprely handle failure.
-            #
-            self.__error = GetLastError()
-            print(f'[*] Unable to attach to the process 0x{self.__error:08X}')
-            return False
-        return True
+        
+        self.debugger_active = True
+        self.run()
 
 
     def load(self, path_to_exe):
@@ -170,12 +162,7 @@ class debugger:
                 print('[*] Process successfully opened.')
                 print(f'[*] Returned handle 0x{self.h_process:08X}')
             
-            if not self.debug_process(self.pid):
-                #
-                # TODO: Properly handle failure.
-                #
-                print('[*] Unable to debug process.')
-        
+            self.debug_loaded_process(self.pid)
         else:
             self.__error = GetLastError()
             #
