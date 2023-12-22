@@ -11,6 +11,9 @@ import ctypes.wintypes as wt
 
 INFINITE = wt.DWORD(-1)
 ULONGLONG = ct.c_ulonglong
+DWORD64 = ULONGLONG
+LONGLONG = ct.c_longlong
+UCHAR = ct.c_ubyte
 
 #
 # dwCreationFlags
@@ -118,7 +121,28 @@ DBG_RIPEXCEPTION                = 0x40010007
 DBG_CONTROL_BREAK               = 0x40010008    
 DBG_COMMAND_EXCEPTION           = 0x40010009    
 DBG_PRINTEXCEPTION_WIDE_C       = 0x4001000A    
-DBG_EXCEPTION_NOT_HANDLED       = 0x80010001    
+DBG_EXCEPTION_NOT_HANDLED       = 0x80010001
+
+#
+# CONTEXT flags
+#    
+CONTEXT_AMD64               = 0x00100000
+CONTEXT_CONTROL             = (CONTEXT_AMD64 | 0x00000001)
+CONTEXT_INTEGER             = (CONTEXT_AMD64 | 0x00000002)
+CONTEXT_SEGMENTS            = (CONTEXT_AMD64 | 0x00000004)
+CONTEXT_FLOATING_POINT      = (CONTEXT_AMD64 | 0x00000008)
+CONTEXT_DEBUG_REGISTERS     = (CONTEXT_AMD64 | 0x00000010)
+CONTEXT_FULL                = (CONTEXT_CONTROL | CONTEXT_INTEGER | \
+                                 CONTEXT_FLOATING_POINT)
+CONTEXT_ALL                 = (CONTEXT_CONTROL | CONTEXT_INTEGER | \
+                                 CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | \
+                                 CONTEXT_DEBUG_REGISTERS)
+CONTEXT_XSTATE              = (CONTEXT_AMD64 | 0x00000040)
+CONTEXT_KERNEL_CET          = (CONTEXT_AMD64 | 0x00000080)
+CONTEXT_EXCEPTION_ACTIVE    = 0x08000000
+CONTEXT_SERVICE_ACTIVE      = 0x10000000
+CONTEXT_EXCEPTION_REQUEST   = 0x40000000
+CONTEXT_EXCEPTION_REPORTING = 0x80000000
 
 #
 # Structures for CreateProcessA() function.
@@ -202,8 +226,8 @@ class EXCEPTION_RECORD64(ct.Structure):
     _fields_ = [
         ("ExceptionCode",           wt.DWORD),
         ("ExceptionFlags",          wt.DWORD),
-        ("ExceptionRecord",         ULONGLONG),
-        ("ExceptionAddress",        ULONGLONG),
+        ("ExceptionRecord",         DWORD64),
+        ("ExceptionAddress",        DWORD64),
         ("NumberOfParameters",      wt.DWORD),
         ("ExceptionInformation",    wt.DWORD * EXCEPTION_MAXIMUM_PARAMETERS),
     ]
@@ -322,4 +346,129 @@ class DEBUG_EVENT64(ct.Structure):
         ("dwProcessId",         wt.DWORD),
         ("dwThreadId",          wt.DWORD),
         ("u",                   u64),
+    ]
+
+#
+# Thread structures.
+#
+class THREADENTRY32(ct.Structure):
+    _fields_ =[
+        ("dwSize",              wt.DWORD),
+        ("cntUsage",            wt.DWORD),
+        ("th32ThreadID",        wt.DWORD),
+        ("th32OwnerProcessId",  wt.DWORD),
+        ("tpBasePri",           wt.LONG),
+        ("tpDeltaPri",          wt.LONG),
+        ("dwFlags",             wt.DWORD),
+    ]
+    
+class M128A(ct.Structure):
+    _fields_ = [
+        ("Low",     ULONGLONG),
+        ("High",    LONGLONG),
+    ]
+
+class ANONYMSTRUCT(ct.Structure):
+    _fields_ = [
+        ("Header",      M128A * 2),
+        ("Legacy",      M128A * 8),
+        ("Xmm0",        M128A),
+        ("Xmm1",        M128A),
+        ("Xmm2",        M128A),
+        ("Xmm3",        M128A),
+        ("Xmm4",        M128A),
+        ("Xmm5",        M128A),
+        ("Xmm6",        M128A),
+        ("Xmm7",        M128A),
+        ("Xmm8",        M128A),
+        ("Xmm9",        M128A),
+        ("Xmm10",       M128A),
+        ("Xmm11",       M128A),
+        ("Xmm12",       M128A),
+        ("Xmm13",       M128A),
+        ("Xmm14",       M128A),
+        ("Xmm15",       M128A),
+    ]
+
+class XMM_SAVE_AREA(ct.Structure):
+    _fields_ = [
+        ("ControlWord",         wt.USHORT),
+        ("StatusWord",          wt.USHORT),
+        ("TagWord",             UCHAR),
+        ("Reserved1",           UCHAR),
+        ("ErrorOpCode",         wt.USHORT),
+        ("ErrorOffset",         wt.ULONG),
+        ("ErrorSelector",       wt.USHORT),
+        ("Reserved2",           wt.USHORT),
+        ("DataOffset",          wt.ULONG),
+        ("DataSelector",        wt.USHORT),
+        ("Reserved3",           wt.USHORT),
+        ("MxCsr",               wt.ULONG),
+        ("MxCsr_Mask",          wt.ULONG),
+        ("FloatRegister",       M128A * 8),
+        ("XmmRegsisters",       M128A * 16),
+        ("Reserved4",           UCHAR * 96),
+    ]
+
+class NEON128(ct.Structure):
+    _fields_ = [
+        ("Low",     ULONGLONG),
+        ("High",    LONGLONG),
+    ]    
+
+class ANONYMUNION(ct.Union):
+    _fields_ = [
+        ("FltSave",         XMM_SAVE_AREA),
+        ("Q",               NEON128 * 16),
+        ("D",               ULONGLONG),
+        ("DUMMYSTRUCTNAME", ANONYMSTRUCT),
+        ("S",               wt.DWORD),
+    ]
+
+class CONTEXT(ct.Structure):
+    _fields_ = [
+        ("P1Home",                  DWORD64),
+        ("P2Home",                  DWORD64),
+        ("P3Home",                  DWORD64),
+        ("P4Home",                  DWORD64),
+        ("P5Home",                  DWORD64),
+        ("ContextFlags",            wt.DOWRD),
+        ("MxCsr",                   wt.DWORD),
+        ("SegCs",                   wt.WORD),
+        ("SegDs",                   wt.WORD),
+        ("SegEs",                   wt.WORD),
+        ("SegFs",                   wt.WORD),
+        ("SegGs",                   wt.WORD),
+        ("SegSs",                   wt.WORD),
+        ("EFlags",                  wt.DWORD),
+        ("Dr0",                     DWORD64),
+        ("Dr1",                     DWORD64),
+        ("Dr2",                     DWORD64),
+        ("Dr3",                     DWORD64),
+        ("Dr6",                     DWORD64),
+        ("Dr7",                     DWORD64),
+        ("Rax",                     DWORD64),
+        ("Rcx",                     DWORD64),
+        ("Rdx",                     DWORD64),
+        ("Rbx",                     DWORD64),
+        ("Rsp",                     DWORD64),
+        ("Rbp",                     DWORD64),
+        ("Rsi",                     DWORD64),
+        ("Rdi",                     DWORD64),
+        ("R8",                      DWORD64),
+        ("R9",                      DWORD64),
+        ("R10",                     DWORD64),
+        ("R11",                     DWORD64),
+        ("R12",                     DWORD64),
+        ("R13",                     DWORD64),
+        ("R14",                     DWORD64),
+        ("R15",                     DWORD64),
+        ("Rip",                     DWORD64),
+        ("DUMMYUNIONNAME",          ANONYMUNION),
+        ("VectorRegister",          M128A * 26),
+        ("VectorControl",           DWORD64),
+        ("LastBranchToRip",         DWORD64),
+        ("LastBranchFromRip",       DWORD64),
+        ("LastExceptionToRip",      DWORD64),
+        ("LastExceptionFromRip",    DWORD64),
     ]
