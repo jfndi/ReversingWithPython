@@ -145,6 +145,35 @@ CONTEXT_EXCEPTION_REQUEST   = 0x40000000
 CONTEXT_EXCEPTION_REPORTING = 0x80000000
 
 #
+# Thread desired accesses.
+#
+THREAD_TERMINATE                    = 0x0001  
+THREAD_SUSPEND_RESUME               = 0x0002  
+THREAD_GET_CONTEXT                  = 0x0008  
+THREAD_SET_CONTEXT                  = 0x0010  
+THREAD_QUERY_INFORMATION            = 0x0040  
+THREAD_SET_INFORMATION              = 0x0020  
+THREAD_SET_THREAD_TOKEN             = 0x0080
+THREAD_IMPERSONATE                  = 0x0100
+THREAD_DIRECT_IMPERSONATION         = 0x0200
+THREAD_SET_LIMITED_INFORMATION      = 0x0400
+THREAD_QUERY_LIMITED_INFORMATION    = 0x0800
+THREAD_RESUME                       = 0x1000
+THREAD_ALL_ACCESS                   = (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE
+                                       | 0xFFFF)
+
+#
+# Thread snapshot flags.
+#
+TH32CS_SNAPHEAPLIST     = 0x00000001
+TH32CS_SNAPPROCESS      = 0x00000002
+TH32CS_SNAPTHREAD       = 0x00000004
+TH32CS_SNAPMODULE       = 0x00000008
+TH32CS_SNAPMODULE32     = 0x00000010
+TH32CS_SNAPALL          = (TH32CS_SNAPHEAPLIST | TH32CS_SNAPPROCESS | TH32CS_SNAPTHREAD | TH32CS_SNAPMODULE)
+TH32CS_INHERIT          = 0x80000000
+
+#
 # Structures for CreateProcessA() function.
 #
 class STARTUPINFOA(ct.Structure):
@@ -356,7 +385,7 @@ class THREADENTRY32(ct.Structure):
         ("dwSize",              wt.DWORD),
         ("cntUsage",            wt.DWORD),
         ("th32ThreadID",        wt.DWORD),
-        ("th32OwnerProcessId",  wt.DWORD),
+        ("th32OwnerProcessID",  wt.DWORD),
         ("tpBasePri",           wt.LONG),
         ("tpDeltaPri",          wt.LONG),
         ("dwFlags",             wt.DWORD),

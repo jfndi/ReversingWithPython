@@ -14,33 +14,62 @@ dd = il.import_module('03_debugger_defines')
 #
 # Kernel32 aliases.
 #
-kernel32 = ct.windll.kernel32
-CreateProcess = kernel32.CreateProcessW
-GetLastError = kernel32.GetLastError
-OpenProcess = kernel32.OpenProcess
-DebugActiveProcess = kernel32.DebugActiveProcess
-WaitForDebugEvent = kernel32.WaitForDebugEvent
-ContinueDebugEvent = kernel32.ContinueDebugEvent
-DebugActiveProcessStop = kernel32.DebugActiveProcessStop
-OpenThread = kernel32.OpenThread
-CreateToolHelp32Snapshot = kernel32.CreateToolHelp32Snapshot
-Thread32First = kernel32.Thread32First
-Thread32Next = kernel32.Thread32Next
-GetThreadContext = kernel32.GetThreadContext
+kernel32                    = ct.windll.kernel32
+CreateProcess               = kernel32.CreateProcessW
+GetLastError                = kernel32.GetLastError
+OpenProcess                 = kernel32.OpenProcess
+DebugActiveProcess          = kernel32.DebugActiveProcess
+WaitForDebugEvent           = kernel32.WaitForDebugEvent
+ContinueDebugEvent          = kernel32.ContinueDebugEvent
+DebugActiveProcessStop      = kernel32.DebugActiveProcessStop
+OpenThread                  = kernel32.OpenThread
+CreateToolHelp32Snapshot    = kernel32.CreateToolHelp32Snapshot
+Thread32First               = kernel32.Thread32First
+Thread32Next                = kernel32.Thread32Next
+GetThreadContext            = kernel32.GetThreadContext
+CloseHandle                 = kernel32.CloseHandle
 
 #
-# Debugger defines aliases.
+# Debugger structure aliases.
 #
-STARTUPINFO = dd.STARTUPINFOW
+STARTUPINFO         = dd.STARTUPINFOW
 PROCESS_INFORMATION = dd.PROCESS_INFORMATION
-DEBUG_EVENT = dd.DEBUG_EVENT64
-DBG_CONTINUE = dd.DBG_CONTINUE
-INFINITE = dd.INFINITE
-DEBUG_PROCESS = dd.DEBUG_PROCESS
-DEBUG_ONLY_THIS_PROCESS = dd.DEBUG_ONLY_THIS_PROCESS
-CREATE_NEW_CONSOLE = dd.CREATE_NEW_CONSOLE
-CREATE_SUSPENDED = dd.CREATE_SUSPENDED
-PROCESS_ALL_ACCESS = dd.PROCESS_ALL_ACCESS
+DEBUG_EVENT         = dd.DEBUG_EVENT64
+THREADENTRY32       = dd.THREADENTRY32
+CONTEXT             = dd.CONTEXT
+
+#
+# Debugger define aliases.
+#
+DBG_CONTINUE                = dd.DBG_CONTINUE
+INFINITE                    = dd.INFINITE
+DEBUG_PROCESS               = dd.DEBUG_PROCESS
+DEBUG_ONLY_THIS_PROCESS     = dd.DEBUG_ONLY_THIS_PROCESS
+CREATE_NEW_CONSOLE          = dd.CREATE_NEW_CONSOLE
+CREATE_SUSPENDED            = dd.CREATE_SUSPENDED
+PROCESS_ALL_ACCESS          = dd.PROCESS_ALL_ACCESS
+THREAD_ALL_ACCESS           = dd.THREAD_ALL_ACCESS
+TH32CS_SNAPHEAPLIST         = dd.TH32CS_SNAPHEAPLIST 
+TH32CS_SNAPPROCESS          = dd.TH32CS_SNAPPROCESS
+TH32CS_SNAPTHREAD           = dd.TH32CS_SNAPTHREAD
+TH32CS_SNAPMODULE           = dd.TH32CS_SNAPMODULE
+TH32CS_SNAPMODULE32         = dd.TH32CS_SNAPMODULE32
+TH32CS_SNAPALL              = dd.TH32CS_SNAPALL
+TH32CS_INHERIT              = dd.TH32CS_INHERIT
+CONTEXT_AMD64               = dd.CONTEXT_AMD64
+CONTEXT_CONTROL             = dd.CONTEXT_CONTROL
+CONTEXT_INTEGER             = dd.CONTEXT_INTEGER
+CONTEXT_SEGMENTS            = dd.CONTEXT_SEGMENTS
+CONTEXT_FLOATING_POINT      = dd.CONTEXT_FLOATING_POINT
+CONTEXT_DEBUG_REGISTERS     = dd.CONTEXT_DEBUG_REGISTERS
+CONTEXT_FULL                = dd.CONTEXT_FULL
+CONTEXT_ALL                 = dd.CONTEXT_ALL
+CONTEXT_XSTATE              = dd.CONTEXT_XSTATE
+CONTEXT_KERNEL_CET          = dd.CONTEXT_KERNEL_CET
+CONTEXT_EXCEPTION_ACTIVE    = dd.CONTEXT_EXCEPTION_ACTIVE
+CONTEXT_SERVICE_ACTIVE      = dd.CONTEXT_SERVICE_ACTIVE
+CONTEXT_EXCEPTION_REQUEST   = dd.CONTEXT_EXCEPTION_REQUEST
+CONTEXT_EXCEPTION_REPORTING = dd.CONTEXT_EXCEPTION_REPORTING
 
 class debugger:
     def __init__(self):
@@ -50,6 +79,7 @@ class debugger:
     @property
     def error(self):
         return self.__error
+
 
     def open_process(self, pid):
         '''
@@ -250,8 +280,6 @@ class debugger:
         self.debug_attached_process(pid)
             
         
-            
-            
     def run(self):
         '''
         
@@ -298,6 +326,97 @@ class debugger:
             #
             print('There was an error.')
             return False
+    
+    
+    def open_thread(self, thread_id):
+        '''        
+
+        Open a handle on the provided thread ID.
+
+        Parameters
+        ----------
+        thread_id : HANDLE
+            Thread Id on which a handle is requested.
+
+        Returns
+        -------
+        Thread handle.
+
+        '''
+        h_thread = OpenThread(THREAD_ALL_ACCESS, None, thread_id)
+        if not h_thread:
+            #
+            # TODO: Properly handle failure.
+            #
+            self.__error = GetLastError()
+            print('[*] Unable to obtain a valid thread handle.')
+            print(f'Error: 0x{self.__error:08X}')
+        
+        return h_thread
+    
+    
+    def enumerate_thread(self):
+        '''
+        
+        Enumerate the threads running inside the current process.
+
+        Returns
+        -------
+        The list of running threads. If the snapshot fails None is returned.
+
+        '''
+        thread_entry = THREADENTRY32()
+        thread_list = []
+        
+        snapshot = CreateToolHelp32Snapshot(TH32CS_SNAPTHREAD, self.pid)
+        if snapshot is not None:
+            #
+            # We have to set the size of the structure, otherwise the call will fail.
+            #
+            thread_entry.dwSize = ct.sizeof(thread_entry)
+            success = Thread32First(snapshot, ct.byref(thread_entry))
+            
+            while success:
+                if thread_entry.th32OwnerProcessID == self.pid:
+                    thread_list.append(thread_entry.th32ThreadID)
+                    success = Thread32Next(snapshot, ct.byref(thread_entry))
+                
+            CloseHandle(snapshot)
+            return thread_list
+        else:
+            return None
+    
+    
+    def get_thread_context(self, thread_id):
+        '''
+        
+        Get and return the thread CPU context.
+
+        Parameters
+        ----------
+        thread_id : Thread iD
+            The ID of the thread we want the CPU context.
+
+        Returns
+        -------
+        A CONTEXT structure containing the thread CPU context.
+        Return None in case of failure.
+
+        '''
+        context = CONTEXT()
+        context.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS
+        
+        #
+        # Obtain a handle to the thread.
+        #
+        h_thread = self.open_thread(thread_id)
+        if GetThreadContext(h_thread, ct.byref(context)) is None:
+            context = None
+        CloseHandle(h_thread)
+        
+        return context
+            
+        
         
 if __name__ == "__main__":
     dbg = debugger()
