@@ -81,6 +81,11 @@ class debugger:
         bool
             False: Unable to the debug the target process.
             True: The Event loop was exited gracefully.
+        
+        Remark: DO NOT call DebugActiveProcess in this context. The process
+        has already its debug port set. Calling it will make DebugActiveProcess
+        return an error of ERROR_INVALID_PARAMETER. Internally, the actual
+        error is STATUS_PORT_ALREADY_SET.
 
         '''
         self.debugger_active = True
@@ -185,6 +190,9 @@ class debugger:
         bool
             False: Unable to the debug the target process.
             True: The Event loop was exited gracefully.
+        
+        Remark: DebugActiveProcess should be called in this context as the 
+        process is not created but attached to.
 
         '''
         if DebugActiveProcess(pid):
