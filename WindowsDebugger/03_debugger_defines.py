@@ -420,7 +420,7 @@ class ANONYMSTRUCT(ct.Structure):
         ("Xmm15",       M128A),
     ]
 
-class XMM_SAVE_AREA(ct.Structure):
+class XMM_SAVE_AREA32(ct.Structure):
     _fields_ = [
         ("ControlWord",         wt.USHORT),
         ("StatusWord",          wt.USHORT),
@@ -436,7 +436,7 @@ class XMM_SAVE_AREA(ct.Structure):
         ("MxCsr",               wt.ULONG),
         ("MxCsr_Mask",          wt.ULONG),
         ("FloatRegister",       M128A * 8),
-        ("XmmRegsisters",       M128A * 16),
+        ("XmmRegisters",        M128A * 16),
         ("Reserved4",           UCHAR * 96),
     ]
 
@@ -448,22 +448,21 @@ class NEON128(ct.Structure):
 
 class ANONYMUNION(ct.Union):
     _fields_ = [
-        ("FltSave",         XMM_SAVE_AREA),
+        ("FltSave",         XMM_SAVE_AREA32),
         ("Q",               NEON128 * 16),
-        ("D",               ULONGLONG),
+        ("D",               ULONGLONG * 32),
         ("DUMMYSTRUCTNAME", ANONYMSTRUCT),
-        ("S",               wt.DWORD),
+        ("S",               wt.DWORD * 32),
     ]
 
 class CONTEXT(ct.Structure):
-    _pack_ = 16
-    
     _fields_ = [
         ("P1Home",                  DWORD64),
         ("P2Home",                  DWORD64),
         ("P3Home",                  DWORD64),
         ("P4Home",                  DWORD64),
         ("P5Home",                  DWORD64),
+        ("P6Home",                  DWORD64),
         ("ContextFlags",            wt.DWORD),
         ("MxCsr",                   wt.DWORD),
         ("SegCs",                   wt.WORD),
@@ -498,7 +497,7 @@ class CONTEXT(ct.Structure):
         ("Rip",                     DWORD64),
         ("DUMMYUNIONNAME",          ANONYMUNION),
         ("VectorRegister",          M128A * 26),
-        ("VectorControl",           DWORD64),
+        ("DebugControl",            DWORD64),
         ("LastBranchToRip",         DWORD64),
         ("LastBranchFromRip",       DWORD64),
         ("LastExceptionToRip",      DWORD64),
