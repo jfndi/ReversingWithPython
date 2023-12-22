@@ -83,7 +83,6 @@ class debugger:
             True: The Event loop was exited gracefully.
 
         '''
-        
         self.debugger_active = True
         self.run()
 
@@ -170,7 +169,36 @@ class debugger:
             #
             print(f'Error: 0x{self.__error:08X}')
             
+    
+    def debug_attached_process(self, pid):
+        '''
         
+        Enter the debug event handling loop.
+
+        Parameters
+        ----------
+        pid : DWORD
+            Target process to be debugged.
+
+        Returns
+        -------
+        bool
+            False: Unable to the debug the target process.
+            True: The Event loop was exited gracefully.
+
+        '''
+        if DebugActiveProcess(pid):
+            self.debugger_active = True
+            self.run()
+        else:
+            #
+            # TODO: Properly handle failure.
+            #
+            print(f'Unable to debug the active process {pid}')
+            return False
+        return True
+        
+    
     def attach(self, pid):
         '''
         
@@ -206,7 +234,7 @@ class debugger:
         # We attempt to attach to the process
         # if this fails we exit the call.
         #
-        self.debug_process(pid)
+        self.debug_attached_process(pid)
             
         
             
@@ -227,6 +255,8 @@ class debugger:
         #
         while self.debugger_active == True:
             self.get_debug_event()
+        else:
+            DebugActiveProcessStop(self.pid)
     
     
     def get_debug_event(self):
@@ -258,5 +288,5 @@ class debugger:
         
 if __name__ == "__main__":
     dbg = debugger()
-    dbg.load(r'C:\Windows\System32\notepad.exe')
-    #dbg.attach(20928)
+    #dbg.load(r'C:\Windows\System32\notepad.exe')
+    dbg.attach(17484)
