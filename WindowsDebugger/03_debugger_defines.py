@@ -10,6 +10,7 @@ import ctypes as ct
 import ctypes.wintypes as wt
 
 INFINITE = wt.DWORD(-1)
+INVALID_VALUE = INFINITE
 ULONGLONG = ct.c_ulonglong
 DWORD64 = ULONGLONG
 LONGLONG = ct.c_longlong
@@ -455,13 +456,15 @@ class ANONYMUNION(ct.Union):
     ]
 
 class CONTEXT(ct.Structure):
+    _pack_ = 16
+    
     _fields_ = [
         ("P1Home",                  DWORD64),
         ("P2Home",                  DWORD64),
         ("P3Home",                  DWORD64),
         ("P4Home",                  DWORD64),
         ("P5Home",                  DWORD64),
-        ("ContextFlags",            wt.DOWRD),
+        ("ContextFlags",            wt.DWORD),
         ("MxCsr",                   wt.DWORD),
         ("SegCs",                   wt.WORD),
         ("SegDs",                   wt.WORD),

@@ -23,11 +23,13 @@ WaitForDebugEvent           = kernel32.WaitForDebugEvent
 ContinueDebugEvent          = kernel32.ContinueDebugEvent
 DebugActiveProcessStop      = kernel32.DebugActiveProcessStop
 OpenThread                  = kernel32.OpenThread
-CreateToolHelp32Snapshot    = kernel32.CreateToolHelp32Snapshot
+CreateToolhelp32Snapshot    = kernel32.CreateToolhelp32Snapshot
 Thread32First               = kernel32.Thread32First
 Thread32Next                = kernel32.Thread32Next
 GetThreadContext            = kernel32.GetThreadContext
 CloseHandle                 = kernel32.CloseHandle
+SuspendThread               = kernel32.SuspendThread
+ResumeThread                = kernel32.ResumeThread
 
 #
 # Debugger structure aliases.
@@ -37,6 +39,7 @@ PROCESS_INFORMATION = dd.PROCESS_INFORMATION
 DEBUG_EVENT         = dd.DEBUG_EVENT64
 THREADENTRY32       = dd.THREADENTRY32
 CONTEXT             = dd.CONTEXT
+INVALID_VALUE       = dd.INVALID_VALUE
 
 #
 # Debugger define aliases.
@@ -355,7 +358,7 @@ class debugger:
         return h_thread
     
     
-    def enumerate_thread(self):
+    def enumerate_threads(self):
         '''
         
         Enumerate the threads running inside the current process.
@@ -368,7 +371,7 @@ class debugger:
         thread_entry = THREADENTRY32()
         thread_list = []
         
-        snapshot = CreateToolHelp32Snapshot(TH32CS_SNAPTHREAD, self.pid)
+        snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, self.pid)
         if snapshot is not None:
             #
             # We have to set the size of the structure, otherwise the call will fail.
@@ -379,7 +382,7 @@ class debugger:
             while success:
                 if thread_entry.th32OwnerProcessID == self.pid:
                     thread_list.append(thread_entry.th32ThreadID)
-                    success = Thread32Next(snapshot, ct.byref(thread_entry))
+                success = Thread32Next(snapshot, ct.byref(thread_entry))
                 
             CloseHandle(snapshot)
             return thread_list
@@ -410,7 +413,11 @@ class debugger:
         # Obtain a handle to the thread.
         #
         h_thread = self.open_thread(thread_id)
-        if GetThreadContext(h_thread, ct.byref(context)) is None:
+        if SuspendThread(h_thread) is not INVALID_VALUE:
+            if GetThreadContext(h_thread, ct.byref(context)) is None:
+                context = None
+            ResumeThread(h_thread)
+        else:
             context = None
         CloseHandle(h_thread)
         
@@ -421,4 +428,41 @@ class debugger:
 if __name__ == "__main__":
     dbg = debugger()
     #dbg.load(r'C:\Windows\System32\notepad.exe')
-    dbg.attach(17484)
+    #dbg.attach(17484)
+    pid = input("Enter the PID of the process to attach to: ")
+    
+    dbg.attach(int(pid))
+    
+    list = dbg.enumerate_threads()
+    
+    #
+    # For each thread in the list we want to display
+    # the general registers.
+    #
+    for thread in list:
+        thread_context = dbg.get_thread_context(thread)
+        
+        print(f'[*] Dumping general registers for thread ID 0x{thread:08X}')
+        if thread_context is not None:
+            print(f'[**] RIP: 0x{thread_context.Rip:016X}')
+            print(f'[**] RSP: 0x{thread_context.Rsp:016X}')
+            print(f'[**] RBP: 0x{thread_context.Rbp:016X}')
+            print(f'[**] RAX: 0x{thread_context.Rax:016X}')
+            print(f'[**] RBX: 0x{thread_context.Rbx:016X}')
+            print(f'[**] RCX: 0x{thread_context.Rcx:016X}')
+            print(f'[**] RDX: 0x{thread_context.Rdx:016X}')
+            print(f'[**] RSI: 0x{thread_context.Rsi:016X}')
+            print(f'[**] RDI: 0x{thread_context.Rdi:016X}')
+            print(f'[**] R8:  0x{thread_context.Rip:016X}')
+            print(f'[**] R9:  0x{thread_context.Rip:016X}')
+            print(f'[**] R10: 0x{thread_context.Rip:016X}')
+            print(f'[**] R11: 0x{thread_context.Rip:016X}')
+            print(f'[**] R12: 0x{thread_context.Rip:016X}')
+            print(f'[**] R14: 0x{thread_context.Rip:016X}')
+            print(f'[**] R15: 0x{thread_context.Rip:016X}')
+            print(f'[**] RIP: 0x{thread_context.Rip:016X}')
+        else:
+            print('[*] Invalid context returned.')
+        print('[*] END DUMP')
+        
+        
