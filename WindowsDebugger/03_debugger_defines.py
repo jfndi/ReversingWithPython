@@ -491,6 +491,7 @@ class CONTEXT(ct.Structure):
         ("Rip",                     DWORD64),
         ("DUMMYUNIONNAME",          ANONYMUNION),
         ("VectorRegister",          M128A * 26),
+        ("VectorControl",           DWORD64),
         ("DebugControl",            DWORD64),
         ("LastBranchToRip",         DWORD64),
         ("LastBranchFromRip",       DWORD64),
