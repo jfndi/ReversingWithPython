@@ -413,10 +413,14 @@ class debugger:
         # Obtain a handle to the thread.
         #
         h_thread = self.open_thread(thread_id)
+        #
+        # A valid thread CPU context can only be retrieved if the targeted
+        # thread is suspended.
+        #
         if SuspendThread(h_thread) is not INVALID_VALUE:
             if GetThreadContext(h_thread, ct.byref(context)) is None:
                 context = None
-            ResumeThread(h_thread)
+            _ = ResumeThread(h_thread)
         else:
             context = None
         CloseHandle(h_thread)
@@ -439,31 +443,34 @@ if __name__ == "__main__":
     # For each thread in the list we want to display
     # the general registers.
     #
+    print(f'[*] Process {dbg.pid} contains {len(list)} threads.')
+    thread_num = 1
     for thread in list:
         thread_context = dbg.get_thread_context(thread)
         
         print(f'[*] Dumping general registers for thread ID 0x{thread:08X}')
         if thread_context is not None:
-            print(f'[**] RIP: 0x{thread_context.Rip:016X}')
-            print(f'[**] RSP: 0x{thread_context.Rsp:016X}')
-            print(f'[**] RBP: 0x{thread_context.Rbp:016X}')
-            print(f'[**] RAX: 0x{thread_context.Rax:016X}')
-            print(f'[**] RBX: 0x{thread_context.Rbx:016X}')
-            print(f'[**] RCX: 0x{thread_context.Rcx:016X}')
-            print(f'[**] RDX: 0x{thread_context.Rdx:016X}')
-            print(f'[**] RSI: 0x{thread_context.Rsi:016X}')
-            print(f'[**] RDI: 0x{thread_context.Rdi:016X}')
-            print(f'[**] R8:  0x{thread_context.R8:016X}')
-            print(f'[**] R9:  0x{thread_context.R9:016X}')
-            print(f'[**] R10: 0x{thread_context.R10:016X}')
-            print(f'[**] R11: 0x{thread_context.R11:016X}')
-            print(f'[**] R12: 0x{thread_context.R12:016X}')
-            print(f'[**] R13: 0x{thread_context.R13:016X}')
-            print(f'[**] R14: 0x{thread_context.R14:016X}')
-            print(f'[**] R15: 0x{thread_context.R15:016X}')
-            print(f'[**] RIP: 0x{thread_context.Rip:016X}')
+            print(f'[**] -({thread_num})- RIP: 0x{thread_context.Rip:016X}')
+            print(f'[**] -({thread_num})- RSP: 0x{thread_context.Rsp:016X}')
+            print(f'[**] -({thread_num})- RBP: 0x{thread_context.Rbp:016X}')
+            print(f'[**] -({thread_num})- RAX: 0x{thread_context.Rax:016X}')
+            print(f'[**] -({thread_num})- RBX: 0x{thread_context.Rbx:016X}')
+            print(f'[**] -({thread_num})- RCX: 0x{thread_context.Rcx:016X}')
+            print(f'[**] -({thread_num})- RDX: 0x{thread_context.Rdx:016X}')
+            print(f'[**] -({thread_num})- RSI: 0x{thread_context.Rsi:016X}')
+            print(f'[**] -({thread_num})- RDI: 0x{thread_context.Rdi:016X}')
+            print(f'[**] -({thread_num})- R8:  0x{thread_context.R8:016X}')
+            print(f'[**] -({thread_num})- R9:  0x{thread_context.R9:016X}')
+            print(f'[**] -({thread_num})- R10: 0x{thread_context.R10:016X}')
+            print(f'[**] -({thread_num})- R11: 0x{thread_context.R11:016X}')
+            print(f'[**] -({thread_num})- R12: 0x{thread_context.R12:016X}')
+            print(f'[**] -({thread_num})- R13: 0x{thread_context.R13:016X}')
+            print(f'[**] -({thread_num})- R14: 0x{thread_context.R14:016X}')
+            print(f'[**] -({thread_num})- R15: 0x{thread_context.R15:016X}')
+            print(f'[**] -({thread_num})- RIP: 0x{thread_context.Rip:016X}')
         else:
-            print('[*] Invalid context returned.')
+            print('[*] -({thread_num})- Invalid context returned.')
         print('[*] END DUMP')
+        thread_num += 1
         
         
