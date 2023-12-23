@@ -397,6 +397,8 @@ class debugger:
                 match debug_event.dwDebugEventCode:
                     case dd.EXCEPTION_DEBUG_EVENT:
                         self.exception_event_handler(debug_event)
+                    case _:
+                        print('Not yet handled')
                         
             else:
                 self.debugger_active = False
