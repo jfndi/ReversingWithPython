@@ -30,6 +30,8 @@ GetThreadContext            = kernel32.GetThreadContext
 CloseHandle                 = kernel32.CloseHandle
 SuspendThread               = kernel32.SuspendThread
 ResumeThread                = kernel32.ResumeThread
+ReadProcessMemory           = kernel32.ReadProcessMemory
+WriteProcessMemory          = kernel32.WriteProcessMemory
 
 #
 # Debugger structure aliases.
@@ -96,6 +98,11 @@ class debugger:
     def __init__(self):
         self.__error = 0
         self.__loop = 0
+        self.h_process = None
+        self.pid = None
+        self.h_thread = None
+        self.context = None
+        self.breakpoints = {}
         self.debugger_active = False
         
         
@@ -517,11 +524,110 @@ class debugger:
         return context
             
         
+        def read_process_memory(self, address, length):
+            '''
+            
+            Read length data at memory address.
+
+            Parameters
+            ----------
+            address : LPVOID
+                Start address of the memory location to be read.
+            length : ULONG
+                The length of the memory location to be read.
+
+            Returns
+            -------
+            data : LPVOID
+                The retuned data buffer or None.
+
+            '''
+            data = ""
+            read_buf = ct.create_string_buffer(length)
+            count = ct.wt.DWORD(0)
+            
+            if not ReadProcessMemory(self.h_process,
+                                     address,
+                                     length,
+                                     ct.byref(count)):
+                return None
+            else:
+                data += read_buf.raw
+                return data
         
+        
+        def write_process_memory(self, address, data):
+            '''
+            
+            Write data at the specified data.
+
+            Parameters
+            ----------
+            address : LPVOID
+                Address at which the data should be writen.
+            data : LPVOID
+                The data to be writen.
+
+            Returns
+            -------
+            bool
+                DESCRIPTION.
+
+            '''
+            count = ct.wt.DWORD(0)
+            length = len(data)
+            c_data = ct.wt.LPVOID(data[count.value:])
+            
+            if not WriteProcessMemory(self.h_process,
+                                      address,
+                                      c_data,
+                                      length,
+                                      ct.byref(count)):
+                return False
+            else:
+                return True
+            
+        
+        def bp_set(self, address):
+            '''
+            
+            Set a breakpoint at the provided address.
+
+            Parameters
+            ----------
+            address : LPVOID
+                Address at which the breakpoint could be writen.
+
+            Returns
+            -------
+            bool
+                True if the breakpoint as been successfully writen.
+
+            '''
+            if not self.breakpoint.has_key(address):
+                try:
+                    #
+                    # Store the original byte
+                    #
+                    original_byte = self.read_process_memory(address, 1)
+                    
+                    #
+                    # Write the INT3 opcode.
+                    #
+                    self.write_process_memory(address, '\xCC')
+                    
+                    #
+                    # Register the breakpoint in our dictionary.
+                    #
+                    self.breakpoint[address] = {address, original_byte}
+                except:
+                    return False
+            return True
+        
+            
 if __name__ == "__main__":
     dbg = debugger()
     #dbg.load(r'C:\Windows\System32\notepad.exe')
     #dbg.attach(17484)
     pid = input("Enter the PID of the process to attach to: ")
     dbg.attach(int(pid))
-        
