@@ -73,6 +73,21 @@ CONTEXT_EXCEPTION_ACTIVE    = dd.CONTEXT_EXCEPTION_ACTIVE
 CONTEXT_SERVICE_ACTIVE      = dd.CONTEXT_SERVICE_ACTIVE
 CONTEXT_EXCEPTION_REQUEST   = dd.CONTEXT_EXCEPTION_REQUEST
 CONTEXT_EXCEPTION_REPORTING = dd.CONTEXT_EXCEPTION_REPORTING
+DEBUG_EVENT64               = dd.DEBUG_EVENT64
+DEBUG_EVENT                 = DEBUG_EVENT64
+
+#
+# Debug Event Code
+#
+EXCEPTION_DEBUG_EVENT       = dd.EXCEPTION_DEBUG_EVENT
+CREATE_THREAD_DEBUG_EVENT   = dd.CREATE_THREAD_DEBUG_EVENT
+CREATE_PROCESS_DEBUG_EVENT  = dd.CREATE_PROCESS_DEBUG_EVENT
+EXIT_THREAD_DEBUG_EVENT     = dd.EXIT_THREAD_DEBUG_EVENT
+EXIT_PROCESS_DEBUG_EVENT    = dd.EXIT_PROCESS_DEBUG_EVENT
+LOAD_DLL_DEBUG_EVENT        = dd.LOAD_DLL_DEBUG_EVENT
+UNLOAD_DLL_DEBUG_EVENT      = dd.UNLOAD_DLL_DEBUG_EVENT
+OUTPUT_DEBUG_STRING_EVENT   = dd.OUTPUT_DEBUG_STRING_EVENT
+RIP_EVENT                   = dd.RIP_EVENT
 
 debug_event_array   = dd.debug_event_array
 debug_event_max     = dd.debug_event_max
@@ -335,7 +350,29 @@ class debugger:
             self.get_debug_event()
         else:
             self.detach()
-    
+            
+            
+    def exception_breakpoint_handler(self):
+        print('[***] Inside the breakpoint handler.')
+        print('[***] Exception Address: 0x{self.exception_address:016X}.')
+        return DBG_CONTINUE
+            
+            
+    def exception_event_handler(self, debug_event):
+        exception = debug_event.u.Exception.ExceptionRecord.ExceptionCode
+        self.exception_address = debug_event.u.Exception.ExceptionRecord.ExceptionAddress        
+        
+        if exception == dd.EXCEPTION_ACCESS_VIOLATION:
+            print('Access Violation Detected.')
+        elif exception == dd.EXCEPTION_BREAKPOINT:
+            self.continue_status = self.exception_breakpoint_handler()
+        elif exception == dd.EXCEPTION_GUARD_PAGE:
+            print('Guard Page Access Detected.')
+        elif exception == dd.EXCEPTION_SINGLE_STEP:
+            print('Single Stepping.')
+        else:
+            print('Received: {exception}')
+            
     
     def get_debug_event(self):
         if self.__loop >= 10:
@@ -343,7 +380,7 @@ class debugger:
             return
         
         debug_event = DEBUG_EVENT()
-        continue_status = DBG_CONTINUE
+        self.continue_status = DBG_CONTINUE
         
         if WaitForDebugEvent(ct.byref(debug_event), INFINITE):
             self.__loop += 1
@@ -356,12 +393,17 @@ class debugger:
                 print(f'Event code: {debug_event.dwDebugEventCode} '
                       f'({debug_event_array[debug_event_index]}) '
                       f'Thread ID: {debug_event.dwThreadId}')
+                
+                match debug_event.dwDebugEventCode:
+                    case dd.EXCEPTION_DEBUG_EVENT:
+                        self.exception_event_handler(debug_event)
+                        
             else:
                 self.debugger_active = False
             
             ContinueDebugEvent(debug_event.dwProcessId,
                                debug_event.dwThreadId,
-                               continue_status)
+                               self.continue_status)
     
     
     def detach(self):
