@@ -175,6 +175,22 @@ TH32CS_SNAPALL          = (TH32CS_SNAPHEAPLIST | TH32CS_SNAPPROCESS | TH32CS_SNA
 TH32CS_INHERIT          = 0x80000000
 
 #
+# Debug event strings.
+#
+debug_event_array = ["INVALID_DEBUG_EVENT",
+               "EXCEPTION_DEBUG_EVENT",
+               "CREATE_THREAD_DEBUG_EVENT",
+               "CREATE_PROCESS_DEBUG_EVENT",
+               "EXIT_THREAD_DEBUG_EVENT",
+               "EXIT_PROCESS_DEBUG_EVENT",
+               "LOAD_DLL_DEBUG_EVENT",
+               "UNLOAD_DLL_DEBUG_EVENT",
+               "OUTPUT_DEBUG_STRING_EVENT",
+               "RIP_EVENT",
+               "UNKNOWN_DEBUG_EVENT"]
+debug_event_max = len(debug_event_array) - 1
+
+#
 # Structures for CreateProcessA() function.
 #
 class STARTUPINFOA(ct.Structure):

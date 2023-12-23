@@ -74,9 +74,43 @@ CONTEXT_SERVICE_ACTIVE      = dd.CONTEXT_SERVICE_ACTIVE
 CONTEXT_EXCEPTION_REQUEST   = dd.CONTEXT_EXCEPTION_REQUEST
 CONTEXT_EXCEPTION_REPORTING = dd.CONTEXT_EXCEPTION_REPORTING
 
+debug_event_array   = dd.debug_event_array
+debug_event_max     = dd.debug_event_max
+
 class debugger:
     def __init__(self):
         self.__error = 0
+        self.__loop = 0
+        self.debugger_active = False
+        
+        
+    def __str__(self):
+        if self.h_thread:
+            thread_context = dbg.get_thread_context(self.h_thread)
+            if thread_context is not None:
+                res_str = f'[**] RIP: 0x{thread_context.Rip:016X}\n'
+                res_str = res_str + f'[**] RSP: 0x{thread_context.Rsp:016X}\n'
+                res_str = res_str + f'[**] RBP: 0x{thread_context.Rbp:016X}\n'
+                res_str = res_str + f'[**] RAX: 0x{thread_context.Rax:016X}\n'
+                res_str = res_str + f'[**] RBX: 0x{thread_context.Rbx:016X}\n'
+                res_str = res_str + f'[**] RCX: 0x{thread_context.Rcx:016X}\n'
+                res_str = res_str + f'[**] RDX: 0x{thread_context.Rdx:016X}\n'
+                res_str = res_str + f'[**] RSI: 0x{thread_context.Rsi:016X}\n'
+                res_str = res_str + f'[**] RDI: 0x{thread_context.Rdi:016X}\n'
+                res_str = res_str + f'[**] R8:  0x{thread_context.R8:016X}\n'
+                res_str = res_str + f'[**] R9:  0x{thread_context.R9:016X}\n'
+                res_str = res_str + f'[**] R10: 0x{thread_context.R10:016X}\n'
+                res_str = res_str + f'[**] R11: 0x{thread_context.R11:016X}\n'
+                res_str = res_str + f'[**] R12: 0x{thread_context.R12:016X}\n'
+                res_str = res_str + f'[**] R13: 0x{thread_context.R13:016X}\n'
+                res_str = res_str + f'[**] R14: 0x{thread_context.R14:016X}\n'
+                res_str = res_str + f'[**] R15: 0x{thread_context.R15:016X}\n'
+                res_str = res_str + f'[**] RIP: 0x{thread_context.Rip:016X}'
+            else:
+                res_str = '[*] Invalid context returned.'
+        else:
+            res_str = 'Undefined current thread handle!!!'
+        return res_str
 
 
     @property
@@ -304,16 +338,27 @@ class debugger:
     
     
     def get_debug_event(self):
+        if self.__loop >= 10:
+            self.debugger_active = False
+            return
+        
         debug_event = DEBUG_EVENT()
         continue_status = DBG_CONTINUE
         
         if WaitForDebugEvent(ct.byref(debug_event), INFINITE):
-            #
-            # No event handlers for the time being.
-            # Let's resume the process for now.
-            #
-            input('Press any key to continue: ')
-            self.debugger_active = False
+            self.__loop += 1
+            self.h_thread = self.open_thread(debug_event.dwThreadId)
+            if self.h_thread:
+                debug_event_index = debug_event.dwDebugEventCode
+                if debug_event_index > debug_event_max:
+                    debug_event_index = debug_event_max
+                
+                print(f'Event code: {debug_event.dwDebugEventCode} '
+                      f'({debug_event_array[debug_event_index]}) '
+                      f'Thread ID: {debug_event.dwThreadId}')
+            else:
+                self.debugger_active = False
+            
             ContinueDebugEvent(debug_event.dwProcessId,
                                debug_event.dwThreadId,
                                continue_status)
@@ -434,45 +479,5 @@ if __name__ == "__main__":
     #dbg.load(r'C:\Windows\System32\notepad.exe')
     #dbg.attach(17484)
     pid = input("Enter the PID of the process to attach to: ")
-    
     dbg.attach(int(pid))
-    
-    list = dbg.enumerate_threads()
-    
-    #
-    # For each thread in the list we want to display
-    # the general registers.
-    #
-    print(f'[*] Process {dbg.pid} contains {len(list)} threads.')
-    thread_num = 1
-    for thread in list:
-        thread_context = dbg.get_thread_context(thread)
-        
-        print(f'[*] Dumping general registers for thread ID 0x{thread:08X}')
-        if thread_context is not None:
-            print(f'[**] -({thread_num})- RIP: 0x{thread_context.Rip:016X}')
-            print(f'[**] -({thread_num})- RSP: 0x{thread_context.Rsp:016X}')
-            print(f'[**] -({thread_num})- RBP: 0x{thread_context.Rbp:016X}')
-            print(f'[**] -({thread_num})- RAX: 0x{thread_context.Rax:016X}')
-            print(f'[**] -({thread_num})- RBX: 0x{thread_context.Rbx:016X}')
-            print(f'[**] -({thread_num})- RCX: 0x{thread_context.Rcx:016X}')
-            print(f'[**] -({thread_num})- RDX: 0x{thread_context.Rdx:016X}')
-            print(f'[**] -({thread_num})- RSI: 0x{thread_context.Rsi:016X}')
-            print(f'[**] -({thread_num})- RDI: 0x{thread_context.Rdi:016X}')
-            print(f'[**] -({thread_num})- R8:  0x{thread_context.R8:016X}')
-            print(f'[**] -({thread_num})- R9:  0x{thread_context.R9:016X}')
-            print(f'[**] -({thread_num})- R10: 0x{thread_context.R10:016X}')
-            print(f'[**] -({thread_num})- R11: 0x{thread_context.R11:016X}')
-            print(f'[**] -({thread_num})- R12: 0x{thread_context.R12:016X}')
-            print(f'[**] -({thread_num})- R13: 0x{thread_context.R13:016X}')
-            print(f'[**] -({thread_num})- R14: 0x{thread_context.R14:016X}')
-            print(f'[**] -({thread_num})- R15: 0x{thread_context.R15:016X}')
-            print(f'[**] -({thread_num})- RIP: 0x{thread_context.Rip:016X}')
-        else:
-            print('[*] -({thread_num})- Invalid context returned.')
-        print('[*] END DUMP')
-        thread_num += 1
-        
-    print('Done!')
-    
         
