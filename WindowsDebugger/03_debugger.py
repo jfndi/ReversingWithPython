@@ -32,6 +32,8 @@ SuspendThread               = kernel32.SuspendThread
 ResumeThread                = kernel32.ResumeThread
 ReadProcessMemory           = kernel32.ReadProcessMemory
 WriteProcessMemory          = kernel32.WriteProcessMemory
+GetModuleHandle             = kernel32.GetModuleNameHandleW
+GetProcAddress              = kernel32.GetProcAddress
 
 #
 # Debugger structure aliases.
@@ -624,6 +626,30 @@ class debugger:
                     return False
             return True
         
+        
+        def func_resolve(self, dll, function):
+            '''
+            
+            Returns the address of a function exported by the module dll.
+
+            Parameters
+            ----------
+            dll : str
+                The dll filename.
+            function : str
+                The function name.
+
+            Returns
+            -------
+            The address of the exported function.
+
+            '''
+            handle = GetModuleHandle(dll)
+            function_ascii = function.encode('ascii', 'ignore')
+            address = GetProcAddress(handle, function_ascii)
+            CloseHandle(handle)
+            
+            return address
             
 if __name__ == "__main__":
     dbg = debugger()
@@ -631,3 +657,10 @@ if __name__ == "__main__":
     #dbg.attach(17484)
     pid = input("Enter the PID of the process to attach to: ")
     dbg.attach(int(pid))
+    
+    printf_address = dbg.func_resolve("msvcrt.dll", "printf")
+    print(f'[*] Address of printf: 0x{printf_address:016X}')
+    
+    dbg.bp_set(printf_address)
+    dbg.run()
+
